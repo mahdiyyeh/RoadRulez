@@ -43,4 +43,11 @@ htmlcov/
 .env
 .env.local
 
+# Backup files
+*.backup
+*.old
+*.broken
+*_backup.py
+*_old.py
+*_refactored.py
 
