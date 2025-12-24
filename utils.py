@@ -17,6 +17,12 @@ def is_file_empty():
     return os.path.getsize('userdetails.txt') == 0
 
 
+def clear_window(name_of_window):
+    """Clears everything in tkinter window."""
+    for widget in name_of_window.winfo_children():
+        widget.destroy()
+
+
 def scale_image(image, scale_factor):
     """Resizes an image based on a scale factor."""
     size = round(image.get_width() * scale_factor), round(image.get_height() * scale_factor)

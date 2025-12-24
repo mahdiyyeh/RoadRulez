@@ -2,10 +2,51 @@
 Game engine module containing game-related classes and logic.
 """
 import time
-import math
+from typing import Optional
 import pygame
-from config import BLUE_CAR, SCALE, LEV1_START_POSITION, LEV2_START_POSITION, LEV3_START_POSITION
-from utils import scale_image, blit_rotate_centre as blit_rotate_centre_util
+from config import BLUE_CAR, SCALE
+from utils import scale_image
+
+
+def get_main_refs():
+    """Gets references to main module objects to avoid circular imports."""
+    import __main__ as main
+    return main
+
+
+class Button1:  # class for buttons in pygame
+    def __init__(self, image, pos, text_input, font, base_color, hovering_color):
+        self.image = image
+        self.x_pos = pos[0]
+        self.y_pos = pos[1]
+        self.font = font
+        self.base_color, self.hovering_color = base_color, hovering_color
+        self.text_input = text_input
+        self.text = self.font.render(self.text_input, True, self.base_color)
+        if self.image is None:
+            self.image = self.text
+        self.rect = self.image.get_rect(center=(self.x_pos, self.y_pos))
+        self.text_rect = self.text.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self):
+        main = get_main_refs()
+        game = main.game
+        if self.image is not None:
+            game.screen.blit(self.image, self.rect)  # type: ignore
+        game.screen.blit(self.text, self.text_rect)  # type: ignore
+
+    def checkForInput(self, position):  # checks if mouse is hovering over the button
+        if position[0] in range(self.rect.left, self.rect.right) and position[1] in range(self.rect.top,
+                                                                                          self.rect.bottom):
+            return True
+        return False
+
+    def changeColor(self, position):  # changes the button textcolour is mouse if hovering over it
+        if position[0] in range(self.rect.left, self.rect.right) and position[1] in range(self.rect.top,
+                                                                                          self.rect.bottom):
+            self.text = self.font.render(self.text_input, True, self.hovering_color)
+        else:
+            self.text = self.font.render(self.text_input, True, self.base_color)
 
 
 class PygameButton:
@@ -52,20 +93,18 @@ class PygameButton:
             self.text = self.font.render(self.text_input, True, self.base_color)
 
 
-class Game:
-    """Manages game state and logic."""
-    
-    def __init__(self, assets=None, user_car_info=None):
+class Game:  # link to spec - Complex user-defined use of object- orientated programming (OOP) model, eg classes
+    def __init__(self):
         self.level_started = False
         self.level_ended = False
-        self.chosen_car_game = scale_image(pygame.image.load(BLUE_CAR), SCALE) if assets else None
+        self.chosen_car_game = scale_image(pygame.image.load(BLUE_CAR), SCALE)
         self.game_width = 1440
         self.game_height = 790
-        self.screen = None
+        self.screen: Optional[pygame.Surface] = None  # type: ignore
         self.back_to_game_page = None
-        self.level1_time = None
-        self.level2_time = None
-        self.level3_time = None
+        self.level1_time: Optional[float] = None  # type: ignore
+        self.level2_time: Optional[float] = None  # type: ignore
+        self.level3_time: Optional[float] = None  # type: ignore
         self.rootdestroyed = False
         self.q1 = False
         self.q2 = False
@@ -80,15 +119,13 @@ class Game:
         self.q11 = False
         self.q12 = False
         self.level_coins = 0
-        self.start_time = 0
-        self.startq_time = 0
-        self.elapsed_time = 0
-        self.paused_time = 0
-        self.assets = assets
-        self.user_car_info = user_car_info
+        self.start_time: float = 0.0  # type: ignore
+        self.startq_time: float = 0.0  # type: ignore
+        self.elapsed_time: float = 0.0  # type: ignore
+        self.paused_time: float = 0.0  # type: ignore
     
+    # resets the quiz states and times when level is complete or escape pressed
     def reset(self):
-        """Resets the quiz states and times when level is complete or escape pressed."""
         self.level_started = False
         self.start_time = 0
         self.level_ended = False
@@ -106,14 +143,12 @@ class Game:
         self.q10 = False
         self.q11 = False
         self.q12 = False
-    
+
     def start_level(self):
-        """Starts a level and begins timing."""
         self.level_started = True
         self.start_time = time.time()
-    
-    def get_time(self):
-        """Returns time for level."""
+
+    def get_time(self):  # returns time for level
         if not self.level_started:
             self.elapsed_time = 0
             return 0
@@ -122,88 +157,53 @@ class Game:
             return self.elapsed_time
         self.elapsed_time = round(time.time() - self.start_time - self.paused_time, 2)
         return self.elapsed_time
-    
-    def set_chosen_car(self, car_path):
-        """Sets the chosen car image for the game."""
-        if self.assets:
-            self.chosen_car_game = scale_image(pygame.image.load(car_path), SCALE)
 
 
-class ParentCar:
-    """Base class for car objects."""
-    
-    def __init__(self, rotation_velocity, start_position, game=None, user_car_info=None):
-        self.START_POSITION = start_position
-        self.velocity = 0
-        self.rotation_velocity = rotation_velocity
-        self.angle = 0
-        self.game = game
-        self.user_car_info = user_car_info
-        self.image = game.chosen_car_game if game else None
-        self.acceleration = 0.05
-        self.x, self.y = self.START_POSITION
-    
-    def rotate(self, left=False, right=False):
-        """Changes angle of the car for rotation."""
-        if left:
-            self.angle += self.rotation_velocity
-        elif right:
-            self.angle -= self.rotation_velocity
-    
-    def draw_on_screen(self, screen=None):
-        """Draws the car on the screen."""
-        display_screen = screen if screen else (self.game.screen if self.game else None)
-        if display_screen and self.image:
-            blit_rotate_centre_util(display_screen, self.image, (self.x, self.y), self.angle)
-    
-    def move_forward(self):
-        """Increases the velocity of the car based on the acceleration."""
-        max_velocity = self.user_car_info.max_velocity if self.user_car_info else 2.5
-        self.velocity = round(min(self.velocity + self.acceleration, max_velocity), 2)
-        self.move()
-    
-    def move_backward(self):
-        """Decreases the velocity of the car."""
-        max_velocity = self.user_car_info.max_velocity if self.user_car_info else 2.5
-        self.velocity = round(max(self.velocity - self.acceleration, (-max_velocity / 3)), 2)
-        self.move()
-    
-    def move(self):
-        """Calculates x and y displacement of car when moving."""
-        radians = math.radians(self.angle)
-        vertical = math.cos(radians) * self.velocity
-        horizontal = math.sin(radians) * self.velocity
-        self.y -= vertical
-        self.x -= horizontal
-    
-    def collide(self, mask, x=0, y=0):
-        """Checks for collision between two objects."""
-        car_mask = pygame.mask.from_surface(self.image)
-        offset = (int(self.x - x)), (int(self.y - y))
-        intersection_point = mask.overlap(car_mask, offset)
-        return intersection_point
-    
-    def reset(self):
-        """Resets the car to starting position."""
-        self.x, self.y = self.START_POSITION
-        self.angle = 0
-        self.velocity = 0
+# Helper functions that use game.screen directly (matching main file pattern)
+def blit_rotate_centre(image, top_left, angle):
+    """1) rotates image, 2) assigns new centre so image rotates from centre and not the top left."""
+    main = get_main_refs()
+    game = main.game
+    rotated_image = pygame.transform.rotate(image, angle)
+    new_rectangle = rotated_image.get_rect(center=image.get_rect(topleft=top_left).center)
+    game.screen.blit(rotated_image, new_rectangle.topleft)  # type: ignore
 
 
-class UserCar(ParentCar):
-    """User-controlled car class."""
-    
-    def reduce_speed(self):
-        """Reduces the car's speed gradually."""
-        self.velocity = round(max(self.velocity - self.acceleration, 0), 2)
-        self.move()
-    
-    def bounce(self):
-        """Causes the car to bounce by reversing velocity."""
-        self.velocity = -self.velocity
-        self.move()
+def write_text_to_centre(font, text):
+    """Writes text to the centre of the screen."""
+    from config import RED, BLACK
+    main = get_main_refs()
+    game = main.game
+    text_bg = font.render(text, True, RED, BLACK)
+    game.screen.blit(text_bg, (game.screen.get_width() / 2 - text_bg.get_width() / 2, game.screen.get_height() / 2 - text_bg.get_height() / 2))  # type: ignore
 
 
+# displays all images on screen during each level
+def draw_on_screen(images, user_car):
+    """Displays all images on screen during each level."""
+    main = get_main_refs()
+    game = main.game
+    # GAME_DETAIL_FONT is initialized in main file
+    try:
+        GAME_DETAIL_FONT = main.GAME_DETAIL_FONT
+    except:
+        import pygame
+        GAME_DETAIL_FONT = pygame.font.Font("Flipahaus-Regular.ttf", 20)
+    
+    from config import WHITE, BLACK
+    for image, position in images:
+        game.screen.blit(image, position)  # type: ignore
+
+    time_text = GAME_DETAIL_FONT.render(f"Time:  {game.get_time()} seconds", True, WHITE, BLACK)
+    game.screen.blit(time_text, (1250, 10))  # type: ignore
+
+    speed_text = GAME_DETAIL_FONT.render(f"Speed: {10 * round(user_car.velocity, 2)}mph", True, WHITE, BLACK)
+    game.screen.blit(speed_text, (1250, 40))  # type: ignore
+    user_car.draw_on_screen()
+    pygame.display.update()
+
+
+# moves the car using the arrow keys
 def move_user(user_car):
     """Moves the car using the arrow keys."""
     keys = pygame.key.get_pressed()
@@ -217,17 +217,3 @@ def move_user(user_car):
         user_car.move_backward()
     else:
         user_car.reduce_speed()
-
-
-def draw_on_screen(screen, images, user_car, game, detail_font):
-    """Displays all images on screen during each level."""
-    for image, position in images:
-        screen.blit(image, position)
-    
-    time_text = detail_font.render(f"Time:  {game.get_time()} seconds", True, (255, 255, 255), (0, 0, 0))
-    screen.blit(time_text, (1250, 10))
-    
-    speed_text = detail_font.render(f"Speed: {10 * round(user_car.velocity, 2)}mph", True, (255, 255, 255), (0, 0, 0))
-    screen.blit(speed_text, (1250, 40))
-    user_car.draw_on_screen(screen)
-    pygame.display.update()
