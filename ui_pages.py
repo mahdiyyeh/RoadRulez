@@ -60,6 +60,7 @@ def home_page():
     user_car_info = main.user_car_info
     car_brands = main.car_brands
     pygame_win = main.pygame_win
+    variables = main.variables
     
     # Ensure pygame display is fully closed if it was open
     if pygame.display.get_init():
