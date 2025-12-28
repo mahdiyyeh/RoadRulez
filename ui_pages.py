@@ -78,10 +78,20 @@ def home_page():
         pass  # Ignore if focus_force fails (common on macOS)
     root.update_idletasks()  # Ensure all pending tasks are processed
     clear_window(root)
-    image = (PhotoImage(file="pictures/Screenshot 2024-02-27 at 12.12.39 pm.png"))
-    image_label = Label(root, image=image)
-    image_label.photo = image  # type: ignore
-    image_label.place(x=0, y=0)
+    # Handle filename with special Unicode character (narrow no-break space)
+    import os
+    pictures_dir = "pictures"
+    # Find the screenshot file (handles Unicode characters in filename)
+    screenshot_files = [f for f in os.listdir(pictures_dir) if "Screenshot 2024-02-27" in f and "12.12.39" in f]
+    if screenshot_files:
+        image_path = os.path.join(pictures_dir, screenshot_files[0])
+        image = PhotoImage(file=image_path)
+        image_label = Label(root, image=image)
+        image_label.photo = image  # type: ignore
+        image_label.place(x=0, y=0)
+    else:
+        # Fallback: use background color if image not found
+        root.configure(bg=variables.background_colour)
 
     setting_button = Button(root, text="Settings", font=(APP_FONT, 20), command=setting.settings)
     setting_button.place(x=350, y=600)
