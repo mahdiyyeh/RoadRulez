@@ -187,7 +187,7 @@ def draw_on_screen(images, user_car):
     try:
         GAME_DETAIL_FONT = main.GAME_DETAIL_FONT
     except:
-        import pygame
+        # pygame is already imported at module level, don't import again
         GAME_DETAIL_FONT = pygame.font.Font("Flipahaus-Regular.ttf", 20)
     
     from config import WHITE, BLACK
